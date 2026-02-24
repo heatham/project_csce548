@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="MatchTracker.Api/MatchTracker.Api.csproj" />
+  <Project Path="MatchTracker.Business/MatchTracker.Business.csproj" />
+  <Project Path="MatchTracker.Client/MatchTracker.Client.csproj" />
+  <Project Path="MatchTracker.Data/MatchTracker.Data.csproj" />
+</Solution>
