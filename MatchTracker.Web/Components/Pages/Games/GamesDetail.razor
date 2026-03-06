@@ -1,0 +1,23 @@
+@page "/games/{Id:int}"
+@inject GamesApi Api
+@using MatchTracker
+
+<h3>Game (Single)</h3>
+
+@if (_item is null)
+{
+    <p>Not found.</p>
+}
+else
+{
+    <p><b>GameId:</b> @_item.GameId</p>
+    <p><b>Name:</b> @_item.Name</p>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Game? _item;
+
+    protected override async Task OnParametersSetAsync()
+        => _item = await Api.GetByIdAsync(Id);
+}

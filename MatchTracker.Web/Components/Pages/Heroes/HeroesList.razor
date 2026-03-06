@@ -1,0 +1,34 @@
+@page "/characters"
+@inject CharactersApi Api
+@using MatchTracker
+
+<h3>Characters (All)</h3>
+
+@if (_items is null)
+{
+    <p>Loading...</p>
+}
+else if (_items.Count == 0)
+{
+    <p>No characters found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var c in _items)
+        {
+            <li>
+                <a href="@($"/characters/{c.CharacterId}")">
+                    @c.CharacterId - @c.Name
+                </a>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<Character>? _items;
+
+    protected override async Task OnInitializedAsync()
+        => _items = await Api.GetAllAsync();
+}

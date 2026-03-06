@@ -1,0 +1,27 @@
+@page "/maps/by-game"
+@inject MapsApi Api
+@using MatchTracker
+
+<h3>Maps (Subset: By Game)</h3>
+
+<input type="number" @bind="_gameId" />
+<button @onclick="Load">Load</button>
+
+@if (_results is not null)
+{
+    <p>Results: @_results.Count</p>
+    <ul>
+        @foreach (var m in _results)
+        {
+            <li>@m.MapId - @m.Name</li>
+        }
+    </ul>
+}
+
+@code {
+    private int _gameId = 1;
+    private List<Map>? _results;
+
+    private async Task Load()
+        => _results = await Api.GetByGameAsync(_gameId);
+}

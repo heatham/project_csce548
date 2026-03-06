@@ -1,0 +1,30 @@
+@page "/games"
+@inject GamesApi Api
+@using MatchTracker
+
+<h3>Games (All)</h3>
+
+@if (_items is null)
+{
+    <p>Loading...</p>
+}
+else if (_items.Count == 0)
+{
+    <p>No games found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var g in _items)
+        {
+            <li><a href="@($"/games/{g.GameId}")">@g.GameId - @g.Name</a></li>
+        }
+    </ul>
+}
+
+@code {
+    private List<Game>? _items;
+
+    protected override async Task OnInitializedAsync()
+        => _items = await Api.GetAllAsync();
+}

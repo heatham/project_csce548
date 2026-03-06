@@ -1,0 +1,26 @@
+@page "/characters/{Id:int}"
+@inject CharactersApi Api
+@using MatchTracker
+
+<h3>Character (Single)</h3>
+
+@if (_item is null)
+{
+    <p>Not found.</p>
+}
+else
+{
+    <p><b>CharacterId:</b> @_item.CharacterId</p>
+    <p><b>GameId:</b> @_item.GameId</p>
+    <p><b>Name:</b> @_item.Name</p>
+    <p><b>Role:</b> @_item.Role</p>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Character? _item;
+
+    protected override async Task OnParametersSetAsync()
+        => _item = await Api.GetByIdAsync(Id);
+}

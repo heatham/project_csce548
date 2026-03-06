@@ -5,6 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Register business layer
 builder.Services.AddSingleton<MatchTrackerService>();
+builder.Services.AddControllers();  // REQUIRED
+builder.Services.AddEndpointsApiExplorer(); // for swagger
 
 var app = builder.Build();
 
@@ -71,5 +73,7 @@ app.MapDelete("/matchstats/{id:int}", (MatchTrackerService svc, int id) => Resul
 // Joined display endpoint
 app.MapGet("/games/{gameId:int}/matches/recent", (MatchTrackerService svc, int gameId, int limit) =>
 	Results.Ok(svc.GetRecentMatchesJoined(gameId, limit)));
+
+app.MapControllers(); // for any [ApiController]s you add later (optional for this project, but common in real APIs)
 
 app.Run();

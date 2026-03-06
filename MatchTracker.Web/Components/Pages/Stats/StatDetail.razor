@@ -1,0 +1,31 @@
+@page "/matchstats/{Id:int}"
+@inject MatchStatsApi Api
+@using MatchTracker
+
+<h3>MatchStat (Single)</h3>
+
+@if (_item is null)
+{
+    <p>Not found.</p>
+}
+else
+{
+    <p><b>StatId:</b> @_item.StatId</p>
+    <p><b>MatchId:</b> @_item.MatchId</p>
+    <p><b>CharacterId:</b> @_item.CharacterId</p>
+    <p><b>Kills:</b> @_item.Kills</p>
+    <p><b>Deaths:</b> @_item.Deaths</p>
+    <p><b>Assists:</b> @_item.Assists</p>
+    <p><b>Damage:</b> @_item.Damage</p>
+    <p><b>Healing:</b> @_item.Healing</p>
+    <p><b>ObjectiveTimeSec:</b> @_item.ObjectiveTimeSec</p>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MatchStat? _item;
+
+    protected override async Task OnParametersSetAsync()
+        => _item = await Api.GetByIdAsync(Id);
+}

@@ -1,0 +1,34 @@
+@page "/matchstats"
+@inject MatchStatsApi Api
+@using MatchTracker
+
+<h3>MatchStats (All)</h3>
+
+@if (_items is null)
+{
+    <p>Loading...</p>
+}
+else if (_items.Count == 0)
+{
+    <p>No match stats found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var s in _items)
+        {
+            <li>
+                <a href="@($"/matchstats/{s.StatId}")">
+                    Stat @s.StatId - Match @s.MatchId - K/D/A @s.Kills/@s.Deaths/@s.Assists
+                </a>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<MatchStat>? _items;
+
+    protected override async Task OnInitializedAsync()
+        => _items = await Api.GetAllAsync();
+}

@@ -1,0 +1,27 @@
+@page "/characters/by-game"
+@inject CharactersApi Api
+@using MatchTracker
+
+<h3>Characters (Subset: By Game)</h3>
+
+<input type="number" @bind="_gameId" />
+<button @onclick="Load">Load</button>
+
+@if (_results is not null)
+{
+    <p>Results: @_results.Count</p>
+    <ul>
+        @foreach (var c in _results)
+        {
+            <li>@c.CharacterId - @c.Name - @c.Role</li>
+        }
+    </ul>
+}
+
+@code {
+    private int _gameId = 1;
+    private List<Character>? _results;
+
+    private async Task Load()
+        => _results = await Api.GetByGameAsync(_gameId);
+}

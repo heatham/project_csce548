@@ -1,0 +1,30 @@
+@page "/matches/{Id:int}"
+@inject MatchesApi Api
+@using MatchTracker
+
+<h3>Match (Single)</h3>
+
+@if (_item is null)
+{
+    <p>Not found.</p>
+}
+else
+{
+    <p><b>MatchId:</b> @_item.MatchId</p>
+    <p><b>GameId:</b> @_item.GameId</p>
+    <p><b>MatchDate:</b> @_item.MatchDate</p>
+    <p><b>QueueType:</b> @_item.QueueType</p>
+    <p><b>MapId:</b> @_item.MapId</p>
+    <p><b>Result:</b> @_item.Result</p>
+    <p><b>DurationSec:</b> @_item.DurationSec</p>
+    <p><b>Notes:</b> @_item.Notes</p>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Match? _item;
+
+    protected override async Task OnParametersSetAsync()
+        => _item = await Api.GetByIdAsync(Id);
+}

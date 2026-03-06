@@ -1,0 +1,26 @@
+@page "/matchstats/by-match"
+@inject MatchStatsApi Api
+@using MatchTracker
+
+<h3>MatchStats (Subset: By Match)</h3>
+
+<input type="number" @bind="_matchId" />
+<button @onclick="Load">Load</button>
+
+@if (_item is not null)
+{
+    <p><b>StatId:</b> @_item.StatId</p>
+    <p><b>MatchId:</b> @_item.MatchId</p>
+    <p><b>K/D/A:</b> @_item.Kills / @_item.Deaths / @_item.Assists</p>
+    <p><b>Damage:</b> @_item.Damage</p>
+    <p><b>Healing:</b> @_item.Healing</p>
+    <p><b>ObjectiveTimeSec:</b> @_item.ObjectiveTimeSec</p>
+}
+
+@code {
+    private int _matchId = 1;
+    private MatchStat? _item;
+
+    private async Task Load()
+        => _item = await Api.GetByMatchAsync(_matchId);
+}
