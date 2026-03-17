@@ -1,34 +1,269 @@
 @page "/matches"
+@rendermode InteractiveServer
 @inject MatchesApi Api
 @using MatchTracker
 
-<h3>Matches (All)</h3>
+<div class="page-shell">
+    <h3 class="page-title">Matches</h3>
 
-@if (_items is null)
-{
-    <p>Loading...</p>
-}
-else if (_items.Count == 0)
-{
-    <p>No matches found.</p>
-}
-else
-{
-    <ul>
-        @foreach (var m in _items)
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="status-message">
+            <b>@_message</b>
+        </div>
+    }
+
+    <div class="crud-section">
+        <h4>Create Match</h4>
+        <div class="form-row">
+            <input type="number" @bind="_createGameId" placeholder="Game ID" />
+            <input type="datetime-local" @bind="_createMatchDate" />
+            <input @bind="_createQueueType" placeholder="Queue type" />
+            <input type="number" @bind="_createMapId" placeholder="Map ID (optional)" />
+            <input @bind="_createResult" placeholder="W or L" />
+            <input type="number" @bind="_createDurationSec" placeholder="DurationSec (optional)" />
+            <input @bind="_createNotes" placeholder="Notes (optional)" />
+            <button @onclick="CreateMatch">Create</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>Get Match By ID</h4>
+        <div class="form-row">
+            <input type="number" @bind="_lookupId" />
+            <button @onclick="LookupMatch">Get One</button>
+        </div>
+
+        @if (_selected is not null)
         {
-            <li>
-                <a href="@($"/matches/{m.MatchId}")">
-                    Match @m.MatchId - Game @m.GameId - @m.QueueType - @m.Result
-                </a>
-            </li>
+            <div>
+                <p>MatchId: @_selected.MatchId</p>
+                <p>GameId: @_selected.GameId</p>
+                <p>MatchDate: @_selected.MatchDate</p>
+                <p>QueueType: @_selected.QueueType</p>
+                <p>MapId: @_selected.MapId</p>
+                <p>Result: @_selected.Result</p>
+                <p>DurationSec: @_selected.DurationSec</p>
+                <p>Notes: @_selected.Notes</p>
+            </div>
         }
-    </ul>
-}
+    </div>
+
+    <div class="crud-section">
+        <h4>Get Matches By Game</h4>
+        <div class="form-row">
+            <input type="number" @bind="_subsetGameId" />
+            <button @onclick="LoadByGame">Load Subset</button>
+        </div>
+
+        @if (_subsetItems is not null)
+        {
+            <ul class="results-list">
+                @foreach (var m in _subsetItems)
+                {
+                    <li>@m.MatchId - @m.QueueType - @m.Result - @m.MatchDate</li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div class="crud-section">
+        <h4>Update Match</h4>
+        <div class="form-row">
+            <input type="number" @bind="_updateId" placeholder="Match ID" />
+            <input type="number" @bind="_updateGameId" placeholder="Game ID" />
+            <input type="datetime-local" @bind="_updateMatchDate" />
+            <input @bind="_updateQueueType" placeholder="Queue type" />
+            <input type="number" @bind="_updateMapId" placeholder="Map ID (optional)" />
+            <input @bind="_updateResult" placeholder="W or L" />
+            <input type="number" @bind="_updateDurationSec" placeholder="DurationSec (optional)" />
+            <input @bind="_updateNotes" placeholder="Notes (optional)" />
+            <button @onclick="UpdateMatch">Update</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>Delete Match</h4>
+        <div class="form-row">
+            <input type="number" @bind="_deleteId" placeholder="Match ID" />
+            <button @onclick="DeleteMatch">Delete</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>All Matches</h4>
+        <div class="form-row">
+            <button @onclick="LoadAll">Refresh</button>
+        </div>
+
+        @if (_items is null)
+        {
+            <p>Loading...</p>
+        }
+        else if (_items.Count == 0)
+        {
+            <p>No matches found.</p>
+        }
+        else
+        {
+            <ul class="results-list">
+                @foreach (var m in _items)
+                {
+                    <li>@m.MatchId - Game @m.GameId - @m.QueueType - @m.Result</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
 
 @code {
     private List<Match>? _items;
+    private List<Match>? _subsetItems;
+    private Match? _selected;
+    private string _message = "";
+
+    private int _createGameId = 1;
+    private DateTime _createMatchDate = DateTime.Now;
+    private string _createQueueType = "";
+    private int? _createMapId = null;
+    private string _createResult = "W";
+    private int? _createDurationSec = null;
+    private string? _createNotes = "";
+
+    private int _lookupId = 1;
+    private int _subsetGameId = 1;
+
+    private int _updateId = 1;
+    private int _updateGameId = 1;
+    private DateTime _updateMatchDate = DateTime.Now;
+    private string _updateQueueType = "";
+    private int? _updateMapId = null;
+    private string _updateResult = "W";
+    private int? _updateDurationSec = null;
+    private string? _updateNotes = "";
+
+    private int _deleteId = 1;
 
     protected override async Task OnInitializedAsync()
-        => _items = await Api.GetAllAsync();
+    {
+        await LoadAll();
+    }
+
+    private async Task LoadAll()
+    {
+        _items = await Api.GetAllAsync();
+    }
+
+    private async Task LookupMatch()
+    {
+        _selected = await Api.GetByIdAsync(_lookupId);
+        _message = _selected is null ? "Match not found." : "Match loaded.";
+    }
+
+    private async Task LoadByGame()
+    {
+        _subsetItems = await Api.GetByGameAsync(_subsetGameId);
+        _message = $"Loaded {_subsetItems.Count} match(es) for game {_subsetGameId}.";
+    }
+
+    private async Task CreateMatch()
+    {
+        if (!TryBuildMatch(
+            0,
+            _createGameId,
+            _createMatchDate,
+            _createQueueType,
+            _createMapId,
+            _createResult,
+            _createDurationSec,
+            _createNotes,
+            out var match,
+            out var error))
+        {
+            _message = error;
+            return;
+        }
+
+        var id = await Api.CreateAsync(match!);
+        _message = $"Match created with ID {id}.";
+        await LoadAll();
+    }
+
+    private async Task UpdateMatch()
+    {
+        if (!TryBuildMatch(
+            _updateId,
+            _updateGameId,
+            _updateMatchDate,
+            _updateQueueType,
+            _updateMapId,
+            _updateResult,
+            _updateDurationSec,
+            _updateNotes,
+            out var match,
+            out var error))
+        {
+            _message = error;
+            return;
+        }
+
+        var rows = await Api.UpdateAsync(_updateId, match!);
+        _message = $"Update result: {rows}";
+        await LoadAll();
+    }
+
+    private async Task DeleteMatch()
+    {
+        var rows = await Api.DeleteAsync(_deleteId);
+        _message = $"Delete result: {rows}";
+        await LoadAll();
+        if (_selected?.MatchId == _deleteId) _selected = null;
+    }
+
+    private static bool TryBuildMatch(
+        int matchId,
+        int gameId,
+        DateTime matchDate,
+        string queueType,
+        int? mapId,
+        string resultText,
+        int? durationSec,
+        string? notes,
+        out Match? match,
+        out string error)
+    {
+        match = null;
+        error = "";
+
+        if (gameId <= 0)
+        {
+            error = "Game ID must be greater than 0.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(queueType))
+        {
+            error = "Queue type is required.";
+            return false;
+        }
+
+        var result = resultText?.Trim().ToUpperInvariant();
+        if (result != "W" && result != "L")
+        {
+            error = "Result must be W or L.";
+            return false;
+        }
+
+        match = new Match(
+            matchId,
+            gameId,
+            matchDate,
+            queueType.Trim(),
+            mapId,
+            result[0],
+            durationSec,
+            string.IsNullOrWhiteSpace(notes) ? null : notes.Trim());
+
+        return true;
+    }
 }

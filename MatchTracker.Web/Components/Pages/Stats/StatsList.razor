@@ -1,34 +1,236 @@
 @page "/matchstats"
+@rendermode InteractiveServer
 @inject MatchStatsApi Api
 @using MatchTracker
 
-<h3>MatchStats (All)</h3>
+<div class="page-shell">
+    <h3 class="page-title">MatchStats</h3>
 
-@if (_items is null)
-{
-    <p>Loading...</p>
-}
-else if (_items.Count == 0)
-{
-    <p>No match stats found.</p>
-}
-else
-{
-    <ul>
-        @foreach (var s in _items)
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="status-message">
+            <b>@_message</b>
+        </div>
+    }
+
+    <div class="crud-section">
+        <h4>Create MatchStat</h4>
+        <div class="form-row">
+            <input type="number" @bind="_createMatchId" placeholder="Match ID" />
+            <input type="number" @bind="_createCharacterId" placeholder="Character ID (optional)" />
+            <input type="number" @bind="_createKills" placeholder="Kills" />
+            <input type="number" @bind="_createDeaths" placeholder="Deaths" />
+            <input type="number" @bind="_createAssists" placeholder="Assists" />
+            <input type="number" @bind="_createDamage" placeholder="Damage (optional)" />
+            <input type="number" @bind="_createHealing" placeholder="Healing (optional)" />
+            <input type="number" @bind="_createObjectiveTimeSec" placeholder="ObjectiveTimeSec (optional)" />
+            <button @onclick="CreateStat">Create</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>Get MatchStat By ID</h4>
+        <div class="form-row">
+            <input type="number" @bind="_lookupId" />
+            <button @onclick="LookupStat">Get One</button>
+        </div>
+
+        @if (_selected is not null)
         {
-            <li>
-                <a href="@($"/matchstats/{s.StatId}")">
-                    Stat @s.StatId - Match @s.MatchId - K/D/A @s.Kills/@s.Deaths/@s.Assists
-                </a>
-            </li>
+            <div>
+                <p>StatId: @_selected.StatId</p>
+                <p>MatchId: @_selected.MatchId</p>
+                <p>CharacterId: @_selected.CharacterId</p>
+                <p>K/D/A: @_selected.Kills / @_selected.Deaths / @_selected.Assists</p>
+                <p>Damage: @_selected.Damage</p>
+                <p>Healing: @_selected.Healing</p>
+                <p>ObjectiveTimeSec: @_selected.ObjectiveTimeSec</p>
+            </div>
         }
-    </ul>
-}
+    </div>
+
+    <div class="crud-section">
+        <h4>Get MatchStat By Match</h4>
+        <div class="form-row">
+            <input type="number" @bind="_subsetMatchId" />
+            <button @onclick="LoadByMatch">Load Subset</button>
+        </div>
+
+        @if (_subsetItem is not null)
+        {
+            <div>
+                <p>StatId: @_subsetItem.StatId</p>
+                <p>MatchId: @_subsetItem.MatchId</p>
+                <p>K/D/A: @_subsetItem.Kills / @_subsetItem.Deaths / @_subsetItem.Assists</p>
+            </div>
+        }
+    </div>
+
+    <div class="crud-section">
+        <h4>Update MatchStat</h4>
+        <div class="form-row">
+            <input type="number" @bind="_updateId" placeholder="Stat ID" />
+            <input type="number" @bind="_updateMatchId" placeholder="Match ID" />
+            <input type="number" @bind="_updateCharacterId" placeholder="Character ID (optional)" />
+            <input type="number" @bind="_updateKills" placeholder="Kills" />
+            <input type="number" @bind="_updateDeaths" placeholder="Deaths" />
+            <input type="number" @bind="_updateAssists" placeholder="Assists" />
+            <input type="number" @bind="_updateDamage" placeholder="Damage (optional)" />
+            <input type="number" @bind="_updateHealing" placeholder="Healing (optional)" />
+            <input type="number" @bind="_updateObjectiveTimeSec" placeholder="ObjectiveTimeSec (optional)" />
+            <button @onclick="UpdateStat">Update</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>Delete MatchStat</h4>
+        <div class="form-row">
+            <input type="number" @bind="_deleteId" placeholder="Stat ID" />
+            <button @onclick="DeleteStat">Delete</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>All MatchStats</h4>
+        <div class="form-row">
+            <button @onclick="LoadAll">Refresh</button>
+        </div>
+
+        @if (_items is null)
+        {
+            <p>Loading...</p>
+        }
+        else if (_items.Count == 0)
+        {
+            <p>No match stats found.</p>
+        }
+        else
+        {
+            <ul class="results-list">
+                @foreach (var s in _items)
+                {
+                    <li>Stat @s.StatId - Match @s.MatchId - K/D/A @s.Kills/@s.Deaths/@s.Assists</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
 
 @code {
     private List<MatchStat>? _items;
+    private MatchStat? _selected;
+    private MatchStat? _subsetItem;
+    private string _message = "";
+
+    private int _createMatchId = 1;
+    private int? _createCharacterId = null;
+    private int _createKills = 0;
+    private int _createDeaths = 0;
+    private int _createAssists = 0;
+    private int? _createDamage = null;
+    private int? _createHealing = null;
+    private int? _createObjectiveTimeSec = null;
+
+    private int _lookupId = 1;
+    private int _subsetMatchId = 1;
+
+    private int _updateId = 1;
+    private int _updateMatchId = 1;
+    private int? _updateCharacterId = null;
+    private int _updateKills = 0;
+    private int _updateDeaths = 0;
+    private int _updateAssists = 0;
+    private int? _updateDamage = null;
+    private int? _updateHealing = null;
+    private int? _updateObjectiveTimeSec = null;
+
+    private int _deleteId = 1;
 
     protected override async Task OnInitializedAsync()
-        => _items = await Api.GetAllAsync();
+    {
+        await LoadAll();
+    }
+
+    private async Task LoadAll()
+    {
+        _items = await Api.GetAllAsync();
+    }
+
+    private async Task LookupStat()
+    {
+        _selected = await Api.GetByIdAsync(_lookupId);
+        _message = _selected is null ? "MatchStat not found." : "MatchStat loaded.";
+    }
+
+    private async Task LoadByMatch()
+    {
+        _subsetItem = await Api.GetByMatchAsync(_subsetMatchId);
+        _message = _subsetItem is null ? "No MatchStat found for that match." : "Subset loaded.";
+    }
+
+    private async Task CreateStat()
+    {
+        if (!TryBuildStat(0, _createMatchId, _createCharacterId, _createKills, _createDeaths, _createAssists, _createDamage, _createHealing, _createObjectiveTimeSec, out var stat, out var error))
+        {
+            _message = error;
+            return;
+        }
+
+        var id = await Api.CreateAsync(stat!);
+        _message = $"MatchStat created with ID {id}.";
+        await LoadAll();
+    }
+
+    private async Task UpdateStat()
+    {
+        if (!TryBuildStat(_updateId, _updateMatchId, _updateCharacterId, _updateKills, _updateDeaths, _updateAssists, _updateDamage, _updateHealing, _updateObjectiveTimeSec, out var stat, out var error))
+        {
+            _message = error;
+            return;
+        }
+
+        var rows = await Api.UpdateAsync(_updateId, stat!);
+        _message = $"Update result: {rows}";
+        await LoadAll();
+    }
+
+    private async Task DeleteStat()
+    {
+        var rows = await Api.DeleteAsync(_deleteId);
+        _message = $"Delete result: {rows}";
+        await LoadAll();
+        if (_selected?.StatId == _deleteId) _selected = null;
+        if (_subsetItem?.StatId == _deleteId) _subsetItem = null;
+    }
+
+    private static bool TryBuildStat(int statId, int matchId, int? characterId, int kills, int deaths, int assists, int? damage, int? healing, int? objectiveTimeSec, out MatchStat? stat, out string error)
+    {
+        stat = null;
+        error = "";
+
+        if (matchId <= 0)
+        {
+            error = "Match ID must be greater than 0.";
+            return false;
+        }
+
+        if (kills < 0 || deaths < 0 || assists < 0)
+        {
+            error = "Kills, deaths, and assists must be 0 or greater.";
+            return false;
+        }
+
+        stat = new MatchStat(
+            statId,
+            matchId,
+            characterId,
+            kills,
+            deaths,
+            assists,
+            damage,
+            healing,
+            objectiveTimeSec);
+
+        return true;
+    }
 }

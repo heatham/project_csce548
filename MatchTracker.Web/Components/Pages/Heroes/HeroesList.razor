@@ -1,34 +1,182 @@
 @page "/characters"
+@rendermode InteractiveServer
 @inject CharactersApi Api
 @using MatchTracker
 
-<h3>Characters (All)</h3>
+<div class="page-shell">
+    <h3 class="page-title">Characters</h3>
 
-@if (_items is null)
-{
-    <p>Loading...</p>
-}
-else if (_items.Count == 0)
-{
-    <p>No characters found.</p>
-}
-else
-{
-    <ul>
-        @foreach (var c in _items)
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="status-message">
+            <b>@_message</b>
+        </div>
+    }
+
+    <div class="crud-section">
+        <h4>Create Character</h4>
+        <div class="form-row">
+            <input type="number" @bind="_createGameId" placeholder="Game ID" />
+            <input @bind="_createName" placeholder="Character name" />
+            <input @bind="_createRole" placeholder="Role (optional)" />
+            <button @onclick="CreateCharacter">Create</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>Get Character By ID</h4>
+        <div class="form-row">
+            <input type="number" @bind="_lookupId" />
+            <button @onclick="LookupCharacter">Get One</button>
+        </div>
+
+        @if (_selected is not null)
         {
-            <li>
-                <a href="@($"/characters/{c.CharacterId}")">
-                    @c.CharacterId - @c.Name
-                </a>
-            </li>
+            <div>
+                <p>CharacterId: @_selected.CharacterId</p>
+                <p>GameId: @_selected.GameId</p>
+                <p>Name: @_selected.Name</p>
+                <p>Role: @_selected.Role</p>
+            </div>
         }
-    </ul>
-}
+    </div>
+
+    <div class="crud-section">
+        <h4>Get Characters By Game</h4>
+        <div class="form-row">
+            <input type="number" @bind="_subsetGameId" />
+            <button @onclick="LoadByGame">Load Subset</button>
+        </div>
+
+        @if (_subsetItems is not null)
+        {
+            <ul class="results-list">
+                @foreach (var c in _subsetItems)
+                {
+                    <li>@c.CharacterId - @c.Name - @c.Role</li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div class="crud-section">
+        <h4>Update Character</h4>
+        <div class="form-row">
+            <input type="number" @bind="_updateId" placeholder="Character ID" />
+            <input @bind="_updateName" placeholder="New name" />
+            <input @bind="_updateRole" placeholder="New role (optional)" />
+            <button @onclick="UpdateCharacter">Update</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>Delete Character</h4>
+        <div class="form-row">
+            <input type="number" @bind="_deleteId" placeholder="Character ID" />
+            <button @onclick="DeleteCharacter">Delete</button>
+        </div>
+    </div>
+
+    <div class="crud-section">
+        <h4>All Characters</h4>
+        <div class="form-row">
+            <button @onclick="LoadAll">Refresh</button>
+        </div>
+
+        @if (_items is null)
+        {
+            <p>Loading...</p>
+        }
+        else if (_items.Count == 0)
+        {
+            <p>No characters found.</p>
+        }
+        else
+        {
+            <ul class="results-list">
+                @foreach (var c in _items)
+                {
+                    <li>@c.CharacterId - Game @c.GameId - @c.Name - @c.Role</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
 
 @code {
     private List<Character>? _items;
+    private List<Character>? _subsetItems;
+    private Character? _selected;
+    private string _message = "";
+
+    private int _createGameId = 1;
+    private string _createName = "";
+    private string _createRole = "";
+
+    private int _lookupId = 1;
+    private int _subsetGameId = 1;
+
+    private int _updateId = 1;
+    private string _updateName = "";
+    private string _updateRole = "";
+
+    private int _deleteId = 1;
 
     protected override async Task OnInitializedAsync()
-        => _items = await Api.GetAllAsync();
+    {
+        await LoadAll();
+    }
+
+    private async Task LoadAll()
+    {
+        _items = await Api.GetAllAsync();
+    }
+
+    private async Task LookupCharacter()
+    {
+        _selected = await Api.GetByIdAsync(_lookupId);
+        _message = _selected is null ? "Character not found." : "Character loaded.";
+    }
+
+    private async Task LoadByGame()
+    {
+        _subsetItems = await Api.GetByGameAsync(_subsetGameId);
+        _message = $"Loaded {_subsetItems.Count} character(s) for game {_subsetGameId}.";
+    }
+
+    private async Task CreateCharacter()
+    {
+        if (string.IsNullOrWhiteSpace(_createName))
+        {
+            _message = "Enter a character name.";
+            return;
+        }
+
+        var id = await Api.CreateAsync(_createGameId, _createName, _createRole);
+        _message = $"Character created with ID {id}.";
+        _createName = "";
+        _createRole = "";
+        await LoadAll();
+    }
+
+    private async Task UpdateCharacter()
+    {
+        if (string.IsNullOrWhiteSpace(_updateName))
+        {
+            _message = "Enter a new character name.";
+            return;
+        }
+
+        var rows = await Api.UpdateAsync(_updateId, _updateName, _updateRole);
+        _message = $"Update result: {rows}";
+        await LoadAll();
+    }
+
+    private async Task DeleteCharacter()
+    {
+        var rows = await Api.DeleteAsync(_deleteId);
+        _message = $"Delete result: {rows}";
+        await LoadAll();
+        if (_selected?.CharacterId == _deleteId) _selected = null;
+    }
 }
